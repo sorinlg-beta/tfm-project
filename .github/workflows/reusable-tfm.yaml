@@ -73,7 +73,7 @@ jobs:
         name: Detect target environments
         shell: bash
         run: |
-          git_ref="${GITHUB_REF}"
+          target_ref="${GITHUB_REF##refs/heads/deploy/}"
           echo "Git ref: ${git_ref}"
     outputs:
       map: ${{ toJson(steps.get_promotion_settings.outputs.rules) }}
@@ -83,8 +83,8 @@ jobs:
     needs: discover
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
+    # container:
+    #   image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
 
     env:
       # setup
@@ -113,11 +113,19 @@ jobs:
           echo "Found settings:"
           echo $settings | jq
 
+          # extract target to branch mapping
           target_to_source_refs=$(echo $settings | jq -c '.target_to_source_refs')
           echo "Target sources map: ${target_to_source_refs}"
 
+          # parse git ref
+          target_ref="${GITHUB_REF##refs/heads/deploy/}"
+
+          # extract target envs
+          matching_target_patterns=$(echo ${target_to_source_refs} | jq -c --arg target_ref ${target_ref} '. | to_entries | map(select(.value == $target_ref)) | from_entries | keys')
+          echo "Matching target patterns: ${matching_target_patterns}"
+
           # store output
-          echo "target_to_source_refs=${target_to_source_refs}" >> $GITHUB_OUTPUT
+          echo "matching_target_patterns=${matching_target_patterns}" >> $GITHUB_OUTPUT
 
       # - name: Setup AWS Credentials
       #   uses: aws-actions/configure-aws-credentials@v1
