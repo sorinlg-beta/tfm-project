@@ -33,22 +33,22 @@ tf <product> <module> <env> <module_instance> <action> [workspace]
 
 ```bash
 # choose product
-export _product='project1'
 export _product='project2'
+export _product='project1'
 
 # choose module
 export _module='sample_module'
 
 # choose env
-export _env='dev'
 export _env='staging'
 export _env='prod'
+export _env='sandbox/mtp/us-east-1/main'
 
 # choose module_instance
-export _module_instance='instance_x'
 export _module_instance='instance_y'
 export _module_instance='instance_z'
 export _module_instance='instance_foo'
+export _module_instance='instance_x'
 
 # general workflow
 ## init

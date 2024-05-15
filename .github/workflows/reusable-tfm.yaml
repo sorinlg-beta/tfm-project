@@ -1,0 +1,95 @@
+name: Reusable Terraform Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment (e.g., dev-us-east-1-main)'
+        required: true
+        type: string
+      tfmProject:
+        description: 'TFM Project'
+        required: true
+        type: string
+      tfmModule:
+        description: 'TFM Module'
+        required: true
+        type: string
+      tfmModuleInstance:
+        description: 'TFM Module Instance'
+        required: true
+        type: string
+    # secrets:
+    #   AWS_ACCESS_KEY_ID:
+    #     required: true
+    #   AWS_SECRET_ACCESS_KEY:
+    #     required: true
+    #   JENKINS_ROLE_ARN:
+    #     required: true
+    #   NETWORKING_ACCOUNT_ROLE_ARN:
+    #     required: true
+
+env:
+  # AWS_REGION: 'us-east-1'
+  TF_EXEC_MODE_OVERRIDE: 'non-interactive'
+
+jobs:
+  terraform:
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
+
+    env:
+      # setup
+      # BUCKET: nxs3tfstates-infra-deployment-${{ inputs.environment }}
+
+      # terraform
+      TF_VAR_env: ${{ inputs.environment }}
+      # TF_VAR_jenkins_role_arn: ${{ secrets.JENKINS_ROLE_ARN }}
+      # TF_VAR_networking_account_role_arn: ${{ secrets.NETWORKING_ACCOUNT_ROLE_ARN }}
+      TF_VAR_deployment_tool: github-actions
+
+      # tfm
+      _proj: ${{ inputs.tfmProject }}
+      _module: ${{ inputs.tfmModule }}
+      _env: ${{ inputs.environment }}
+      _module_instance: ${{ inputs.tfmModuleInstance }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # - name: Setup AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ env.AWS_REGION }}
+
+      - name: Initialize Terraform
+        run: |
+          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          set +e
+          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode'
+          planExitCode=$?
+          exitCode=0 # assume failure
+          echo "planExitCode=${planExitCode}" >> $GITHUB_ENV
+          if [ "$planExitCode" -eq 2 ]; then
+            echo "Plan contains changes"
+            echo "terraform_plan_changes=true" >> $GITHUB_ENV
+            exitCode=0
+          elif [ "$planExitCode" -eq 0 ]; then
+            echo "No changes in plan"
+            echo "terraform_plan_changes=false" >> $GITHUB_ENV
+            exitCode=0
+          else
+            echo "Plan failed"
+            exitCode=1
+          fi
+          exit $exitCode
+

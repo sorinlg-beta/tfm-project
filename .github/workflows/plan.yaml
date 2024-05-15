@@ -1,0 +1,54 @@
+name: Plan
+
+run-name: Plan to ${{ inputs.environment }} by @${{ github.actor }}
+
+on:
+  # push:
+  #   branches:
+  #     - sandbox
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (e.g., dev-us-east-1-main)'
+        required: true
+        type: environment
+        default: sandbox/mtp/us-east-1/main
+      tfmProject:
+        description: 'TFM Project'
+        required: true
+        type: choice
+        options:
+          - project1
+          - project2
+        default: project1
+      tfmModule:
+        description: 'TFM Module'
+        required: true
+        type: choice
+        options:
+          - sample_module
+        default: sample_module
+      tfmModuleInstance:
+        description: 'TFM Module Instance'
+        required: true
+        type: choice
+        options:
+          - instance_x
+          - instance_y
+          - instance_z
+          - instance_foo
+        default: instance_x
+
+jobs:
+  call-reusable-workflow:
+    uses: ./.github/workflows/reusable-tfm.yaml
+    with:
+      environment: ${{ inputs.environment }}
+      tfmProject: ${{ inputs.tfmProject }}
+      tfmModule: ${{ inputs.tfmModule }}
+      tfmModuleInstance: ${{ inputs.tfmModuleInstance }}
+    # secrets:
+    #   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #   JENKINS_ROLE_ARN: ${{ secrets.JENKINS_ROLE_ARN }}
+    #   NETWORKING_ACCOUNT_ROLE_ARN: ${{ secrets.NETWORKING_ACCOUNT_ROLE_ARN }}
