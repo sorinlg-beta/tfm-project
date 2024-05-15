@@ -1,6 +1,6 @@
 name: promotion-init
 
-run-name: User @${{ github.actor }} has initiated a promotion pipeline
+run-name: "@${{ github.actor }} has initiated a promotion pipeline"
 
 on:
   push:
