@@ -1,5 +1,7 @@
 name: promotion-progress
 
+run-name: Promote {{ github.event.pull_request.head.ref }} to {{ github.event.pull_request.base.ref }} by @${{ github.actor }}
+
 on:
   pull_request_review:
     types: [submitted]
