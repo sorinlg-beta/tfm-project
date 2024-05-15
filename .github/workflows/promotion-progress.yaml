@@ -32,7 +32,7 @@ jobs:
       - name: Calculate Target Refs
         id: calc-target-refs
         run: |
-          stages=$(echo $STAGES | jq -cr '.[1:]')
+          stages=$(echo $STAGES | jq -cr '. | map(split(":")[0]) | .[1:]')
           echo "targetRefs=${stages}" >> $GITHUB_OUTPUT
       - name: Find Promotion Request
         id: find
