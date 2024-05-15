@@ -1,6 +1,9 @@
 name: Reusable Terraform Workflow
 
 on:
+  push:
+    branches:
+      - deploy/**
   workflow_call:
     inputs:
       environment:
@@ -34,7 +37,50 @@ env:
   TF_EXEC_MODE_OVERRIDE: 'non-interactive'
 
 jobs:
+  discover:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    steps:
+      - uses: sorinlg-beta/promotion-actions/checkout-pr@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: get_promotion_settings
+        name: Discover promotion settings
+        shell: bash
+        run: |
+          source .tfm.conf
+          echo "Config path: ${__tfm_env_rel_path}"
+          projects=`ls -A ${__tfm_env_rel_path}`
+
+          echo "Found projects:"
+          for project in ${projects}; do
+            echo "  - ${project}"
+          done
+
+          echo "The discovered promotion settings:"
+          ls -la promotion_settings.yaml
+          rules=`cat promotion_settings.yaml | yq -o json | jq -c '.'`
+
+          echo
+          echo "Found rules:"
+          echo "${rules}" | yq -p json
+
+          # store output
+          echo "rules=${rules}" >> $GITHUB_OUTPUT
+
+      - id: detect_target_environments
+        name: Detect target environments
+        shell: bash
+        run: |
+          git_ref="${GITHUB_REF}"
+          echo "Git ref: ${git_ref}"
+    outputs:
+      map: ${{ toJson(steps.get_promotion_settings.outputs.rules) }}
+
   terraform:
+    name: Terraform Plan
+    needs: discover
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     container:
@@ -60,6 +106,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get promotion settings
+        id: get_promotion_settings
+        run: |
+          settings="${{ needs.discover.outputs.map }}"
+          echo "Found settings:"
+          echo $settings | jq
+
+          target_to_source_refs=$(echo $settings | jq -c '.target_to_source_refs')
+          echo "Target sources map: ${target_to_source_refs}"
+
+          # store output
+          echo "target_to_source_refs=${target_to_source_refs}" >> $GITHUB_OUTPUT
+
       # - name: Setup AWS Credentials
       #   uses: aws-actions/configure-aws-credentials@v1
       #   with:
@@ -67,29 +126,29 @@ jobs:
       #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     aws-region: ${{ env.AWS_REGION }}
 
-      - name: Initialize Terraform
-        run: |
-          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
+      # - name: Initialize Terraform
+      #   run: |
+      #     tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
 
-      - name: Terraform Plan
-        id: plan
-        run: |
-          set +e
-          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode'
-          planExitCode=$?
-          exitCode=0 # assume failure
-          echo "planExitCode=${planExitCode}" >> $GITHUB_ENV
-          if [ "$planExitCode" -eq 2 ]; then
-            echo "Plan contains changes"
-            echo "terraform_plan_changes=true" >> $GITHUB_ENV
-            exitCode=0
-          elif [ "$planExitCode" -eq 0 ]; then
-            echo "No changes in plan"
-            echo "terraform_plan_changes=false" >> $GITHUB_ENV
-            exitCode=0
-          else
-            echo "Plan failed"
-            exitCode=1
-          fi
-          exit $exitCode
+      # - name: Terraform Plan
+      #   id: plan
+      #   run: |
+      #     set +e
+      #     tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode'
+      #     planExitCode=$?
+      #     exitCode=0 # assume failure
+      #     echo "planExitCode=${planExitCode}" >> $GITHUB_ENV
+      #     if [ "$planExitCode" -eq 2 ]; then
+      #       echo "Plan contains changes"
+      #       echo "terraform_plan_changes=true" >> $GITHUB_ENV
+      #       exitCode=0
+      #     elif [ "$planExitCode" -eq 0 ]; then
+      #       echo "No changes in plan"
+      #       echo "terraform_plan_changes=false" >> $GITHUB_ENV
+      #       exitCode=0
+      #     else
+      #       echo "Plan failed"
+      #       exitCode=1
+      #     fi
+      #     exit $exitCode
 
