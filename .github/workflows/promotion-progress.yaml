@@ -1,6 +1,6 @@
 name: promotion-progress
 
-run-name: Promote ${{ github.event.pull_request.head.ref }} to ${{ github.event.pull_request.base.ref }} by @${{ github.actor }}
+run-name: "User @${{ github.actor }} is promoting PR#${{ github.event.pull_request.number }}: ${{ github.event.pull_request.head.ref }} --> ${{ github.event.pull_request.base.ref }}"
 
 on:
   pull_request_review:
