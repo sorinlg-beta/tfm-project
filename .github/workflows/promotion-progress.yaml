@@ -34,9 +34,6 @@ jobs:
         run: |
           stages=$(echo $STAGES | jq -cr '.[1:]')
           echo "targetRefs=${stages}" >> $GITHUB_OUTPUT
-      - name: Test output
-        run: |
-          echo "targetRefs: ${{ steps.calc-target-refs.outputs.targetRefs }}"
       - name: Find Promotion Request
         id: find
         uses: sorinlg-beta/promotion-actions/find-promotion-request@main
