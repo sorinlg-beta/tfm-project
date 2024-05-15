@@ -1,0 +1,58 @@
+name: promotion-progress
+
+on:
+  pull_request_review:
+    types: [submitted]
+  check_run:
+    types: [completed]
+  check_suite:
+    types: [completed]
+  deployment_status: ~
+  status: ~
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+
+env:
+  STAGES: |
+    ["develop", "main", "staging:auto", "canary", "production"]
+
+jobs:
+  progress:
+    name: Progress
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - name: Calculate Target Refs
+        id: calc-target-refs
+        run: |
+          stages=$(echo $STAGES | jq -cr '.[1:]')
+          echo "targetRefs=${stages}" >> $GITHUB_OUTPUT
+      - name: Test output
+        run: |
+          echo "targetRefs: ${{ steps.calc-target-refs.outputs.targetRefs }}"
+      - name: Find Promotion Request
+        id: find
+        uses: sorinlg-beta/promotion-actions/find-promotion-request@main
+        with:
+          targetRefs: '${{ steps.calc-target-refs.outputs.targetRefs }}'
+      - name: Fast-Forward Merge
+        id: merge
+        if: ${{ steps.find.outputs.promoteable == 'true' }}
+        uses: sorinlg-beta/promotion-actions/fast-forward-merge@main
+        with:
+          baseRef: ${{ steps.find.outputs.baseRef }}
+          headRef: ${{ steps.find.outputs.headRef }}
+      - name: Request Promotion
+        id: promote
+        if: ${{ steps.find.outputs.promoteable == 'true' }}
+        uses: sorinlg-beta/promotion-actions/open-promotion-request@main
+        with:
+          stages: ${{ env.STAGES }}
+          source: ${{ steps.find.outputs.baseRef }}

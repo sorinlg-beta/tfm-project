@@ -1,0 +1,29 @@
+name: promotion-init
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+
+env:
+  STAGES: |
+    ["develop", "main", "staging:auto", "canary", "production"]
+
+jobs:
+  initiate:
+    name: Initiate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enter Promotion Pipeline
+        uses: sorinlg-beta/promotion-actions/open-promotion-request@main
+        with:
+          stages: ${{ env.STAGES }}
+          source: "${{ github.ref }}"
+
