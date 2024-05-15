@@ -15,13 +15,44 @@ permissions:
   pull-requests: write
   statuses: write
 
-env:
-  STAGES: |
-    ["develop", "main", "staging:auto", "canary", "production"]
-
 jobs:
+  discover:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    steps:
+      - uses: sorinlg-beta/promotion-actions/checkout-pr@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: get_promotion_settings
+        name: Discover promotion settings
+        shell: bash
+        run: |
+          source .tfm.conf
+          echo "Config path: ${__tfm_env_rel_path}"
+          projects=`ls -A ${__tfm_env_rel_path}`
+
+          echo "Found projects:"
+          for project in ${projects}; do
+            echo "  - ${project}"
+          done
+
+          echo "The discovered promotion settings:"
+          ls -la promotion_settings.yaml
+          rules=`cat promotion_settings.yaml | yq -o json | jq -c '.'`
+
+          echo
+          echo "Found rules:"
+          echo "${rules}" | yq -p json
+
+          # store output
+          echo "rules=${rules}" >> $GITHUB_OUTPUT
+    outputs:
+      map: ${{ toJson(steps.get_promotion_settings.outputs.rules) }}
+
   progress:
     name: Progress
+    needs: discover
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -29,11 +60,30 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+      - name: Get promotion settings
+        id: get_promotion_settings
+        run: |
+          settings="${{ needs.discover.outputs.map }}"
+          echo "Found settings:"
+          echo $settings | jq
+
+          stages=$(echo $settings | jq -c '.promotion_order | map("deploy/" + .)')
+          echo "Promotion order (stages): ${stages}"
+
+          # store output
+          echo "stages=${stages}" >> $GITHUB_OUTPUT
       - name: Calculate Target Refs
         id: calc-target-refs
         run: |
-          stages=$(echo $STAGES | jq -cr '. | map(split(":")[0]) | .[1:]')
-          echo "targetRefs=${stages}" >> $GITHUB_OUTPUT
+          # get settings
+          settings="${{ needs.discover.outputs.map }}"
+
+          # extract promotion stages
+          stages=$(echo $settings | jq -c '.promotion_order | map("deploy/" + .)')
+
+          # filter out the first stage and extract the target refs without the :auto flags
+          targetRefs=$(echo $stages | jq -cr '. | map(split(":")[0]) | .[1:]')
+          echo "targetRefs=${targetRefs}" >> $GITHUB_OUTPUT
       - name: Find Promotion Request
         id: find
         uses: sorinlg-beta/promotion-actions/find-promotion-request@main
@@ -51,5 +101,5 @@ jobs:
         if: ${{ steps.find.outputs.promoteable == 'true' }}
         uses: sorinlg-beta/promotion-actions/open-promotion-request@main
         with:
-          stages: ${{ env.STAGES }}
+          stages: ${{ steps.get_promotion_settings.outputs.stages }}
           source: ${{ steps.find.outputs.baseRef }}

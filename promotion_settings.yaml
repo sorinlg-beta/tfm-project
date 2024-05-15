@@ -1,0 +1,16 @@
+---
+target_to_source_refs:
+  sandbox: develop
+  ci-infra: main
+  dev: main
+  pre: staging
+  prod: production
+  prod/nw/eu-central-2/main: canary
+  prod/mtp/eu-central-2/main: canary
+
+promotion_order:
+  - develop
+  - main
+  - staging:auto
+  - canary
+  - production
