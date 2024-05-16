@@ -3,10 +3,6 @@ name: Reusable Terraform Workflow
 on:
   workflow_call:
     inputs:
-      environment:
-        description: 'Deployment environment (e.g., dev-us-east-1-main)'
-        required: true
-        type: string
       tfmProject:
         description: 'TFM Project'
         required: true
@@ -15,12 +11,20 @@ on:
         description: 'TFM Module'
         required: true
         type: string
+      tfmEnvironment:
+        description: 'TFM Environment'
+        required: true
+        type: string
       tfmModuleInstance:
         description: 'TFM Module Instance'
         required: true
         type: string
-      matching_target_patterns:
+      target_executions:
         description: 'Matching target patterns'
+        required: true
+        type: string
+      target_envs:
+        description: 'Matching target envs'
         required: true
         type: string
     # secrets:
@@ -40,17 +44,17 @@ env:
 jobs:
   terraform:
     name: Terraform Plan
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.tfmEnvironment }}
     runs-on: ubuntu-latest
     # container:
     #   image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
 
     env:
       # setup
-      # BUCKET: nxs3tfstates-infra-deployment-${{ inputs.environment }}
+      # BUCKET: nxs3tfstates-infra-deployment-${{ inputs.tfmEnvironment }}
 
       # terraform
-      TF_VAR_env: ${{ inputs.environment }}
+      TF_VAR_env: ${{ inputs.tfmEnvironment }}
       # TF_VAR_jenkins_role_arn: ${{ secrets.JENKINS_ROLE_ARN }}
       # TF_VAR_networking_account_role_arn: ${{ secrets.NETWORKING_ACCOUNT_ROLE_ARN }}
       TF_VAR_deployment_tool: github-actions
@@ -58,7 +62,7 @@ jobs:
       # tfm
       _proj: ${{ inputs.tfmProject }}
       _module: ${{ inputs.tfmModule }}
-      _env: ${{ inputs.environment }}
+      _env: ${{ inputs.tfmEnvironment }}
       _module_instance: ${{ inputs.tfmModuleInstance }}
 
     steps:
@@ -68,7 +72,26 @@ jobs:
       - name: Get target environments
         id: get_promotion_settings
         run: |
-          echo "Found matching_target_patterns: ${{ inputs.matching_target_patterns }}"
+          target_executions="${{ inputs.target_executions }}"
+          echo "Target target_executions:"
+          echo "${target_executions}"
+
+          echo "Target executions (JQ):"
+          echo "${target_executions}" | jq
+
+          target_envs="${{ inputs.target_envs }}"
+          echo "Target target_envs:"
+          echo "${target_envs}"
+
+          echo "Target target_envs (JQ):"
+          echo "${target_envs}" | jq
+
+          echo
+          echo "TFM execution settings:"
+          echo "- project: ${_proj}"
+          echo "- module: ${_module}"
+          echo "- environment: ${_env}"
+          echo "- module instance: ${_module_instance}"
 
       # - name: Setup AWS Credentials
       #   uses: aws-actions/configure-aws-credentials@v1

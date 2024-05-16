@@ -6,38 +6,6 @@ on:
   push:
     branches:
       - deploy/**
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment (e.g., dev-us-east-1-main)'
-        required: true
-        type: environment
-        default: sandbox/mtp/us-east-1/main
-      tfmProject:
-        description: 'TFM Project'
-        required: true
-        type: choice
-        options:
-          - project1
-          - project2
-        default: project1
-      tfmModule:
-        description: 'TFM Module'
-        required: true
-        type: choice
-        options:
-          - sample_module
-        default: sample_module
-      tfmModuleInstance:
-        description: 'TFM Module Instance'
-        required: true
-        type: choice
-        options:
-          - instance_x
-          - instance_y
-          - instance_z
-          - instance_foo
-        default: instance_x
 
 jobs:
   discover:
@@ -51,51 +19,39 @@ jobs:
       - id: get_promotion_settings
         name: Discover promotion settings
         shell: bash
-        run: |
-          source .tfm.conf
-          echo "Config path: ${__tfm_env_rel_path}"
-          projects=`ls -A ${__tfm_env_rel_path}`
-
-          echo "Found projects:"
-          for project in ${projects}; do
-            echo "  - ${project}"
-          done
-
-          echo "The discovered promotion settings:"
-          ls -la promotion_settings.yaml
-          settings=`cat promotion_settings.yaml | yq -o json | jq -c '.'`
-
-          echo
-          echo "Found settings:"
-          echo "${settings}" | yq -p json
-
-          # extract target to branch mapping
-          target_to_source_refs=$(echo $settings | jq -c '.target_to_source_refs')
-          echo "Target sources map: ${target_to_source_refs}"
-
-          # parse git ref
-          target_ref="${GITHUB_REF##refs/heads/deploy/}"
-
-          # extract target envs
-          matching_target_patterns=$(echo ${target_to_source_refs} | jq -c --arg target_ref ${target_ref} '. | to_entries | map(select(.value == $target_ref)) | from_entries | keys')
-          echo "Matching target patterns: ${matching_target_patterns}"
-
-          # store output
-          echo "matching_target_patterns=${matching_target_patterns}" >> $GITHUB_OUTPUT
-
+        run: ./scripts/detect_environments.sh
+        env:
+          GITHUB_REF: ${{ env.GITHUB_REF }}
 
     outputs:
-      matching_target_patterns: ${{ toJson(steps.get_promotion_settings.outputs.matching_target_patterns) }}
+      target_executions: ${{ toJson(steps.get_promotion_settings.outputs.target_executions) }}
+      target_envs: ${{ toJson(steps.get_promotion_settings.outputs.target_envs) }}
+      tfmEnvironment: ${{ steps.get_promotion_settings.outputs.target_envs }}
+
+  test:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tfmEnvironment: ${{ fromJson(needs.discover.outputs.tfmEnvironment) }}
+    steps:
+      - run: |
+          current_env="${{ matrix.tfmEnvironment }}"
+          echo "Current environment: ${current_env}"
 
   plan:
     needs: discover
     uses: ./.github/workflows/reusable-tfm.yaml
+    strategy:
+      matrix:
+        tfmEnvironment: ${{ fromJson(needs.discover.outputs.tfmEnvironment) }}
     with:
-      environment: ${{ inputs.environment }}
-      tfmProject: ${{ inputs.tfmProject }}
-      tfmModule: ${{ inputs.tfmModule }}
-      tfmModuleInstance: ${{ inputs.tfmModuleInstance }}
-      matching_target_patterns: ${{ needs.discover.outputs.matching_target_patterns }}
+      tfmProject: project1
+      tfmEnvironment: ${{ matrix.tfmEnvironment }}
+      tfmModule: sample_module
+      tfmModuleInstance: instance_foo
+      target_executions: ${{ needs.discover.outputs.target_executions }}
+      target_envs: ${{ needs.discover.outputs.target_envs }}
     # secrets:
     #   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
     #   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
