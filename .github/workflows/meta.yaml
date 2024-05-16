@@ -1,0 +1,48 @@
+name: Orchestrator
+
+on:
+  workflow_call:
+    inputs:
+      tfmEnvironment:
+        description: 'TFM Environment'
+        required: true
+        type: string
+jobs:
+  meta:
+    environment: ${{ inputs.tfmEnvironment }}
+    needs:
+      - job1
+      - job2
+      - job3
+    runs-on: ubuntu-latest
+    steps:
+      - id: get_promotion_settings
+        name: Discover promotion settings
+        run: |
+          echo "Wrapping child jobs into the parent environment deployment status"
+
+  job1:
+    uses: ./.github/workflows/reusable-tfm.yaml
+    with:
+      tfmProject: project1
+      tfmModule: sample_module
+      tfmEnvironment: ${{ inputs.tfmEnvironment }}
+      tfmModuleInstance: instance_x
+
+  job2:
+    uses: ./.github/workflows/reusable-tfm.yaml
+    needs: job1
+    with:
+      tfmProject: project1
+      tfmModule: sample_module
+      tfmEnvironment: ${{ inputs.tfmEnvironment }}
+      tfmModuleInstance: instance_y
+
+  job3:
+    uses: ./.github/workflows/reusable-tfm.yaml
+    needs: job2
+    with:
+      tfmProject: project1
+      tfmModule: another_module
+      tfmEnvironment: ${{ inputs.tfmEnvironment }}
+      tfmModuleInstance: instance_foo

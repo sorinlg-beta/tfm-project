@@ -19,14 +19,6 @@ on:
         description: 'TFM Module Instance'
         required: true
         type: string
-      target_executions:
-        description: 'Matching target patterns'
-        required: true
-        type: string
-      target_envs:
-        description: 'Matching target envs'
-        required: true
-        type: string
     # secrets:
     #   AWS_ACCESS_KEY_ID:
     #     required: true
@@ -43,11 +35,11 @@ env:
 
 jobs:
   terraform:
-    name: Terraform Plan
-    environment: ${{ inputs.tfmEnvironment }}
+    name: "${{ inputs.tfmProject}}/${{ inputs.tfmModule}}/${{ inputs.tfmModuleInstance}}"
+    environment: "${{ inputs.tfmEnvironment }} ${{ inputs.tfmProject}} ${{ inputs.tfmModule}} ${{ inputs.tfmModuleInstance}}"
     runs-on: ubuntu-latest
-    # container:
-    #   image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
+    container:
+      image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
 
     env:
       # setup
@@ -72,20 +64,6 @@ jobs:
       - name: Get target environments
         id: get_promotion_settings
         run: |
-          target_executions="${{ inputs.target_executions }}"
-          echo "Target target_executions:"
-          echo "${target_executions}"
-
-          echo "Target executions (JQ):"
-          echo "${target_executions}" | jq
-
-          target_envs="${{ inputs.target_envs }}"
-          echo "Target target_envs:"
-          echo "${target_envs}"
-
-          echo "Target target_envs (JQ):"
-          echo "${target_envs}" | jq
-
           echo
           echo "TFM execution settings:"
           echo "- project: ${_proj}"
@@ -100,29 +78,29 @@ jobs:
       #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     aws-region: ${{ env.AWS_REGION }}
 
-      # - name: Initialize Terraform
-      #   run: |
-      #     tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
+      - name: Initialize Terraform
+        run: |
+          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
 
-      # - name: Terraform Plan
-      #   id: plan
-      #   run: |
-      #     set +e
-      #     tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode'
-      #     planExitCode=$?
-      #     exitCode=0 # assume failure
-      #     echo "planExitCode=${planExitCode}" >> $GITHUB_ENV
-      #     if [ "$planExitCode" -eq 2 ]; then
-      #       echo "Plan contains changes"
-      #       echo "terraform_plan_changes=true" >> $GITHUB_ENV
-      #       exitCode=0
-      #     elif [ "$planExitCode" -eq 0 ]; then
-      #       echo "No changes in plan"
-      #       echo "terraform_plan_changes=false" >> $GITHUB_ENV
-      #       exitCode=0
-      #     else
-      #       echo "Plan failed"
-      #       exitCode=1
-      #     fi
-      #     exit $exitCode
+      - name: Terraform Plan
+        id: plan
+        run: |
+          set +e
+          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode'
+          planExitCode=$?
+          exitCode=0 # assume failure
+          echo "planExitCode=${planExitCode}" >> $GITHUB_ENV
+          if [ "$planExitCode" -eq 2 ]; then
+            echo "Plan contains changes"
+            echo "terraform_plan_changes=true" >> $GITHUB_ENV
+            exitCode=0
+          elif [ "$planExitCode" -eq 0 ]; then
+            echo "No changes in plan"
+            echo "terraform_plan_changes=false" >> $GITHUB_ENV
+            exitCode=0
+          else
+            echo "Plan failed"
+            exitCode=1
+          fi
+          exit $exitCode
 

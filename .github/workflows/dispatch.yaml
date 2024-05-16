@@ -1,4 +1,4 @@
-name: Plan
+name: Dispatch
 
 run-name: "@${{ github.actor }} triggered a plan for ${{ github.event_name }} ${{ github.ref }}"
 
@@ -28,30 +28,14 @@ jobs:
       target_envs: ${{ toJson(steps.get_promotion_settings.outputs.target_envs) }}
       tfmEnvironment: ${{ steps.get_promotion_settings.outputs.target_envs }}
 
-  test:
+  meta:
     needs: discover
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tfmEnvironment: ${{ fromJson(needs.discover.outputs.tfmEnvironment) }}
-    steps:
-      - run: |
-          current_env="${{ matrix.tfmEnvironment }}"
-          echo "Current environment: ${current_env}"
-
-  plan:
-    needs: discover
-    uses: ./.github/workflows/reusable-tfm.yaml
+    uses: ./.github/workflows/meta.yaml
     strategy:
       matrix:
         tfmEnvironment: ${{ fromJson(needs.discover.outputs.tfmEnvironment) }}
     with:
-      tfmProject: project1
       tfmEnvironment: ${{ matrix.tfmEnvironment }}
-      tfmModule: sample_module
-      tfmModuleInstance: instance_foo
-      target_executions: ${{ needs.discover.outputs.target_executions }}
-      target_envs: ${{ needs.discover.outputs.target_envs }}
     # secrets:
     #   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
     #   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
