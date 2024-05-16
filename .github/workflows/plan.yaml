@@ -1,6 +1,6 @@
 name: Plan
 
-run-name: Plan to ${{ inputs.environment }} by @${{ github.actor }}
+run-name: "@${{ github.actor }} triggered a plan for ${{ github.event_name }} ${{ github.ref }}"
 
 on:
   push:
