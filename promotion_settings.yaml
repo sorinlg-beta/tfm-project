@@ -1,6 +1,9 @@
 ---
 target_to_source_refs:
   sandbox: develop
+  sandbox/mtp: develop-mtp
+  sandbox/mtp/us-east-1: develop-mtp-ue1
+  sandbox/mtp/us-east-1/main: develop-mtp-ue1-main
   ci-infra: main
   dev: main
   pre: staging
