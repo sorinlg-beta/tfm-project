@@ -60,19 +60,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: ./.github/actions/tfm
+      - name: Deploy tf-manage project
+        uses: ./.github/actions/tfm
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get target environments
-        id: get_promotion_settings
-        run: |
-          echo
-          echo "TFM execution settings:"
-          echo "- project: ${_proj}"
-          echo "- module: ${_module}"
-          echo "- environment: ${_env}"
-          echo "- module instance: ${_module_instance}"
 
       # - name: Setup AWS Credentials
       #   uses: aws-actions/configure-aws-credentials@v1
