@@ -36,7 +36,6 @@ env:
 jobs:
   terraform:
     name: "${{ inputs.tfmProject}}/${{ inputs.tfmModule}}/${{ inputs.tfmModuleInstance}}"
-    environment: "${{ inputs.tfmEnvironment }} ${{ inputs.tfmProject}} ${{ inputs.tfmModule}} ${{ inputs.tfmModuleInstance}}"
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
@@ -60,6 +59,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - uses: ./.github/actions/tfm
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get target environments
         id: get_promotion_settings
