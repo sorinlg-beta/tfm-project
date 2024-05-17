@@ -82,21 +82,28 @@ jobs:
 
       - name: Terraform Format
         id: fmt
-        run: tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "fmt"
+        run: |
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "fmt" 2>&1 | tee /dev/tty)
+          echo "stdout=${stdout}" >> $GITHUB_OUTPUT
 
       - name: Terraform Init
         id: init
-        run: tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
+        run: |
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init" 2>&1 | tee /dev/tty)
+          echo "stdout=${stdout}" >> $GITHUB_OUTPUT
 
       - name: Terraform Validate
         id: validate
-        run: tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "validate"
+        run: |
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "validate" 2>&1 | tee /dev/tty)
+          echo "stdout=${stdout}" >> $GITHUB_OUTPUT
 
       - name: Terraform Plan
         id: plan
         run: |
           set +e
-          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode'
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode' 2>&1 | tee /dev/tty)
+          echo "stdout=${stdout}" >> $GITHUB_OUTPUT
           planExitCode=$?
           exitCode=0 # assume failure
           echo "planExitCode=${planExitCode}" >> $GITHUB_ENV
@@ -112,7 +119,6 @@ jobs:
             echo "Plan failed"
             exitCode=1
           fi
-          exit $exitCode
 
       - uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
