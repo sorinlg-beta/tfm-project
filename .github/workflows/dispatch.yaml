@@ -25,7 +25,8 @@ jobs:
         shell: bash
         run: ./scripts/detect_environments.sh
         env:
-          GITHUB_REF: ${{ env.GITHUB_REF }}
+          # GITHUB_REF: ${{ env.GITHUB_REF }} # push event
+          GITHUB_REF: ${{ github.event.pull_request.head.ref }} # pr sync event
 
     outputs:
       target_executions: ${{ toJson(steps.get_promotion_settings.outputs.target_executions) }}
