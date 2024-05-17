@@ -3,9 +3,13 @@ name: Dispatch
 run-name: "@${{ github.actor }} triggered a plan for ${{ github.event_name }} ${{ github.ref }}"
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
     branches:
-      - deploy/**
+      - 'deploy/**'
+
+permissions:
+  pull-requests: write
 
 jobs:
   discover:

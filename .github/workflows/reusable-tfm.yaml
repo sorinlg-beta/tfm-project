@@ -60,10 +60,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy tf-manage project
-        uses: ./.github/actions/tfm
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get target environments
+        shell: bash
+        id: get_promotion_settings
+        run: |
+          echo
+          echo "TFM execution settings:"
+          echo "- tfmProject: ${{ inputs.tfmProject }}"
+          echo "- project: ${_proj}"
+          echo "- module: ${_module}"
+          echo "- environment: ${_env}"
+          echo "- module instance: ${_module_instance}"
 
 
       # - name: Setup AWS Credentials
@@ -73,9 +80,17 @@ jobs:
       #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     aws-region: ${{ env.AWS_REGION }}
 
-      - name: Initialize Terraform
-        run: |
-          tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
+      - name: Terraform Format
+        id: fmt
+        run: tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "fmt"
+
+      - name: Terraform Init
+        id: init
+        run: tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
+
+      - name: Terraform Validate
+        id: validate
+        run: tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "validate"
 
       - name: Terraform Plan
         id: plan
@@ -98,4 +113,62 @@ jobs:
             exitCode=1
           fi
           exit $exitCode
+
+      - uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
+            })
+
+            // 2. Prepare format of the comment
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            // 3. If we have a comment, update it, otherwise create a new one
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+            }
 

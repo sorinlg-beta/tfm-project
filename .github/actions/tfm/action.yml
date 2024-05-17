@@ -13,6 +13,9 @@ inputs:
   tfmModuleInstance:
     description: "TFM Module Instance"
     required: true
+  tfmAction:
+    description: "Action to pass to terraform through TFM"
+    required: true
   token:
     description: "Explicitely provide secrets.GITHUB_TOKEN here"
     required: true
