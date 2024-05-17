@@ -83,26 +83,26 @@ jobs:
       - name: Terraform Format
         id: fmt
         run: |
-          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "fmt" 2>&1 | tee /dev/tty)
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "fmt" 2>&1 | tee /dev/stderr)
           echo "stdout=${stdout}" >> $GITHUB_OUTPUT
 
       - name: Terraform Init
         id: init
         run: |
-          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init" 2>&1 | tee /dev/tty)
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init" 2>&1 | tee /dev/stderr)
           echo "stdout=${stdout}" >> $GITHUB_OUTPUT
 
       - name: Terraform Validate
         id: validate
         run: |
-          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "validate" 2>&1 | tee /dev/tty)
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "validate" 2>&1 | tee /dev/stderr)
           echo "stdout=${stdout}" >> $GITHUB_OUTPUT
 
       - name: Terraform Plan
         id: plan
         run: |
           set +e
-          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode' 2>&1 | tee /dev/tty)
+          stdout=$(tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" 'plan -detailed-exitcode' 2>&1 | tee /dev/stderr)
           echo "stdout=${stdout}" >> $GITHUB_OUTPUT
           planExitCode=$?
           exitCode=0 # assume failure
