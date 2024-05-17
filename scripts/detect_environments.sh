@@ -45,7 +45,7 @@ echo
 echo "Target sources map: ${target_to_source_refs}"
 
 # remove redundant git ref prefix
-target_ref="${_target_ref##refs/heads/deploy/}"
+target_ref="${_target_ref##deploy/}"
 echo
 echo "Target ref: ${target_ref}"
 
