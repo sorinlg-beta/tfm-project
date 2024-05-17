@@ -20,6 +20,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name:
+        run: |
+          event="${{ github.event }}"
+          echo "${event}" | jq '.'
+
       - id: get_promotion_settings
         name: Discover promotion settings
         shell: bash
