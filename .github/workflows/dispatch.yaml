@@ -23,6 +23,11 @@ jobs:
       - name: Debug
         uses: hmarr/debug-action@v3
 
+      - name: Test
+        run: |
+          test='${{ github.event.pull_request.head.ref }}'
+          echo "test: ${test}"
+
       - id: get_promotion_settings
         name: Discover promotion settings
         shell: bash
