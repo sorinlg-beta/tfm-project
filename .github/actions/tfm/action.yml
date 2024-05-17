@@ -1,0 +1,41 @@
+name: "tf-manage project"
+description: "Deploy a Terraform project using tf-manage"
+inputs:
+  tfmProject:
+    description: "TFM Project"
+    required: true
+  tfmModule:
+    description: "TFM Module"
+    required: true
+  tfmEnvironment:
+    description: "TFM Environment"
+    required: true
+  tfmModuleInstance:
+    description: "TFM Module Instance"
+    required: true
+  tfmAction:
+    description: "Action to pass to terraform through TFM"
+    required: true
+  token:
+    description: "Explicitely provide secrets.GITHUB_TOKEN here"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Get target environments
+      shell: bash
+      id: get_promotion_settings
+      run: |
+        echo
+        echo "TFM execution settings:"
+        echo "- tfmProject: ${{ inputs.tfmProject }}"
+        echo "- project: ${_proj}"
+        echo "- module: ${_module}"
+        echo "- environment: ${_env}"
+        echo "- module instance: ${_module_instance}"
+
+    - name: Test
+      shell: bash
+      run: |
+        echo "I am here"
+        ls -la

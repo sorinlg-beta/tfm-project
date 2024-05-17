@@ -3,9 +3,13 @@ name: Dispatch
 run-name: "@${{ github.actor }} triggered a plan for ${{ github.event_name }} ${{ github.ref }}"
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
     branches:
-      - deploy/**
+      - 'deploy/**'
+
+permissions:
+  pull-requests: write
 
 jobs:
   discover:
@@ -16,12 +20,21 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug
+        uses: hmarr/debug-action@v3
+
+      - name: Test
+        run: |
+          test='${{ github.event.pull_request.head.ref }}'
+          echo "test: ${test}"
+
       - id: get_promotion_settings
         name: Discover promotion settings
         shell: bash
         run: ./scripts/detect_environments.sh
         env:
-          GITHUB_REF: ${{ env.GITHUB_REF }}
+          # _target_ref: ${{ env.GITHUB_REF }} # push event
+          _target_ref: ${{ github.event.pull_request.head.ref }} # pr sync event
 
     outputs:
       target_executions: ${{ toJson(steps.get_promotion_settings.outputs.target_executions) }}

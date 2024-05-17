@@ -36,7 +36,6 @@ env:
 jobs:
   terraform:
     name: "${{ inputs.tfmProject}}/${{ inputs.tfmModule}}/${{ inputs.tfmModuleInstance}}"
-    environment: "${{ inputs.tfmEnvironment }} ${{ inputs.tfmProject}} ${{ inputs.tfmModule}} ${{ inputs.tfmModuleInstance}}"
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/sorinlg-beta/tf-manage:v6.3.0
@@ -62,14 +61,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Get target environments
+        shell: bash
         id: get_promotion_settings
         run: |
           echo
           echo "TFM execution settings:"
+          echo "- tfmProject: ${{ inputs.tfmProject }}"
           echo "- project: ${_proj}"
           echo "- module: ${_module}"
           echo "- environment: ${_env}"
           echo "- module instance: ${_module_instance}"
+
 
       # - name: Setup AWS Credentials
       #   uses: aws-actions/configure-aws-credentials@v1
@@ -79,6 +81,7 @@ jobs:
       #     aws-region: ${{ env.AWS_REGION }}
 
       - name: Initialize Terraform
+        id: init
         run: |
           tf "${{ env._proj }}" "${{ env._module }}" "${{ env._env }}" "${{ env._module_instance }}" "init"
 

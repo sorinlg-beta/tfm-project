@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # test GITHUB_REF is set
-if [ -z "${GITHUB_REF}" ]; then
-  echo "GITHUB_REF is not set"
+if [ -z "${_target_ref}" ]; then
+  echo "_target_ref is not set"
   exit 1
 fi
 
@@ -45,7 +45,7 @@ echo
 echo "Target sources map: ${target_to_source_refs}"
 
 # remove redundant git ref prefix
-target_ref="${GITHUB_REF##refs/heads/deploy/}"
+target_ref="${_target_ref##deploy/}"
 echo
 echo "Target ref: ${target_ref}"
 
