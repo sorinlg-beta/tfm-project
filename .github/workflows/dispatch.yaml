@@ -22,7 +22,7 @@ jobs:
 
       - name:
         run: |
-          event="${{ github.event }}"
+          event="${{ fromJson(github.event) }}"
           echo "${event}" | jq '.'
 
       - id: get_promotion_settings
